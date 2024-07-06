@@ -1,5 +1,6 @@
 library pylon;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:toxic_flutter/extensions/future.dart';
 import 'package:toxic_flutter/extensions/stream.dart';
@@ -115,7 +116,11 @@ extension XFuture<T> on Future<T> {
   Widget withPylon(
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>
-      build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
+      catchError((e, es) {
+        if (kDebugMode) {
+          print("Error loading Future<$T>: $e $es");
+        }
+      }).build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
 }
 
 extension XStream<T> on Stream<T> {
