@@ -2,10 +2,13 @@ library pylon;
 
 import 'package:flutter/material.dart';
 import 'package:toxic_flutter/extensions/future.dart';
+import 'package:toxic_flutter/extensions/stream.dart';
 
 extension XBuildContext on BuildContext {
   /// Finds the nearest ancestor [Pylon] of [T] widget and returns its value
-  T pylon<T>() => findAncestorWidgetOfExactType<Pylon<T>>()!.value;
+  T pylon<T>({T? or}) => (findAncestorWidgetOfExactType<Pylon<T>>()?.value ??
+      findAncestorWidgetOfExactType<Pylon<T?>>()?.value ??
+      or)!;
 }
 
 /// A [PylonCluster] is a widget that hosts nested [Pylon] widgets
@@ -109,6 +112,14 @@ extension XIterable<T> on Iterable<T> {
 
 extension XFuture<T> on Future<T> {
   /// Builds a [FutureBuilder] with parent pylon available for use
+  Widget withPylon(
+          BuildContext context, Widget Function(BuildContext context) builder,
+          {Widget? loading}) =>
+      build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
+}
+
+extension XStream<T> on Stream<T> {
+  /// Builds a [StreamBuilder] with parent pylon available for use
   Widget withPylon(
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>

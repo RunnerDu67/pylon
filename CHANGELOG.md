@@ -1,3 +1,12 @@
+## 1.0.2
+
+* Attempt to find T? when searching for T with pylon<T>()
+* Added pylon<T>(or: T) to provide a default value if the pylon is not found
+
+## 1.0.1
+
+* Stream Extensions
+
 ## 1.0.0
 
 * Initial Release
