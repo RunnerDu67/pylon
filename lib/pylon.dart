@@ -144,6 +144,10 @@ extension XFuture<T> on Future<T> {
           print("Error loading Future<$T>: $e $es");
         }
       }).build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
+
+  Widget withPylonNullable(BuildContext context,
+          Widget Function(BuildContext context) builder) =>
+      buildNullable((t) => Pylon<T?>(value: t, builder: builder));
 }
 
 /// Extension on [Stream] to provide easy creation of [StreamBuilder] with [Pylon] support.
@@ -159,4 +163,8 @@ extension XStream<T> on Stream<T> {
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>
       build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
+
+  Widget withPylonNullable(BuildContext context,
+          Widget Function(BuildContext context) builder) =>
+      buildNullable((t) => Pylon<T?>(value: t, builder: builder));
 }
