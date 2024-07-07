@@ -145,6 +145,13 @@ extension XFuture<T> on Future<T> {
         }
       }).build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
 
+  /// Builds a [FutureBuilder] with parent pylon available for use, allowing nullable values.
+  ///
+  /// Example:
+  /// ```dart
+  /// Future<String?> future = Future.value("Hello World");
+  /// Widget widget = future.withPylonNullable((context) => Text(context.pylon<String?>()));
+  /// ```
   Widget withPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
       buildNullable((t) => Pylon<T?>(value: t, builder: builder));
@@ -164,6 +171,13 @@ extension XStream<T> on Stream<T> {
           {Widget? loading}) =>
       build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
 
+  /// Builds a [StreamBuilder] with parent pylon available for use, allowing nullable values.
+  ///
+  /// Example:
+  /// ```dart
+  /// Stream<String?> stream = Stream.value("Hello World");
+  /// Widget widget = stream.withPylonNullable((context) => Text(context.pylon<String?>()));
+  /// ```
   Widget withPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
       buildNullable((t) => Pylon<T?>(value: t, builder: builder));
