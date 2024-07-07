@@ -5,14 +5,23 @@ import 'package:flutter/material.dart';
 import 'package:toxic_flutter/extensions/future.dart';
 import 'package:toxic_flutter/extensions/stream.dart';
 
+/// Extension on [BuildContext] to provide easy access to [Pylon] values.
 extension XBuildContext on BuildContext {
-  /// Finds the nearest ancestor [Pylon] of [T] widget and returns its value
+  /// Finds the nearest ancestor [Pylon] of type [T] and returns its value.
+  /// If no such [Pylon] is found, returns the provided default value [or].
+  ///
+  /// Example:
+  /// ```dart
+  /// String value = context.pylon<String>(or: "default");
+  /// ```
   T pylon<T>({T? or}) => (findAncestorWidgetOfExactType<Pylon<T>>()?.value ??
       findAncestorWidgetOfExactType<Pylon<T?>>()?.value ??
       or)!;
 }
 
-/// A [PylonCluster] is a widget that hosts nested [Pylon] widgets
+/// A [PylonCluster] is a widget that hosts nested [Pylon] widgets.
+/// It allows you to create multiple [Pylon]s at once and provides a builder
+/// to build the child widget with the context containing all the [Pylon]s.
 class PylonCluster extends StatelessWidget {
   final List<Pylon> pylons;
   final Widget Function(BuildContext context) builder;
@@ -104,15 +113,29 @@ class Pylon<T> extends StatelessWidget {
   }
 }
 
+/// Extension on [Iterable] to provide easy creation of [Pylon] widgets for each item.
 extension XIterable<T> on Iterable<T> {
-  /// Builds [Pylon] widgets for each item in the list with your builder
+  /// Builds [Pylon] widgets for each item in the list with your builder.
+  ///
+  /// Example:
+  /// ```dart
+  /// List<String> items = ["a", "b", "c"];
+  /// List<Widget> widgets = items.withPylons((context) => Text(context.pylon<String>()));
+  /// ```
   Iterable<Widget> withPylons(BuildContext context,
           Widget Function(BuildContext context) builder) =>
       map((t) => Pylon<T>(value: t, builder: (context) => builder(context)));
 }
 
+/// Extension on [Future] to provide easy creation of [FutureBuilder] with [Pylon] support.
 extension XFuture<T> on Future<T> {
-  /// Builds a [FutureBuilder] with parent pylon available for use
+  /// Builds a [FutureBuilder] with parent pylon available for use.
+  ///
+  /// Example:
+  /// ```dart
+  /// Future<String> future = Future.value("Hello World");
+  /// Widget widget = future.withPylon((context) => Text(context.pylon<String>()));
+  /// ```
   Widget withPylon(
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>
@@ -123,8 +146,15 @@ extension XFuture<T> on Future<T> {
       }).build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
 }
 
+/// Extension on [Stream] to provide easy creation of [StreamBuilder] with [Pylon] support.
 extension XStream<T> on Stream<T> {
-  /// Builds a [StreamBuilder] with parent pylon available for use
+  /// Builds a [StreamBuilder] with parent pylon available for use.
+  ///
+  /// Example:
+  /// ```dart
+  /// Stream<String> stream = Stream.value("Hello World");
+  /// Widget widget = stream.withPylon((context) => Text(context.pylon<String>()));
+  /// ```
   Widget withPylon(
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>
