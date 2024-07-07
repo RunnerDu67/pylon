@@ -154,7 +154,9 @@ extension XFuture<T> on Future<T> {
   /// ```
   Widget withPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
-      buildNullable((t) => Pylon<T?>(value: t, builder: builder));
+      buildNullable((t) => t != null
+          ? Pylon<T>(value: t, builder: builder)
+          : Pylon<T?>(value: t, builder: builder));
 }
 
 /// Extension on [Stream] to provide easy creation of [StreamBuilder] with [Pylon] support.
@@ -180,5 +182,7 @@ extension XStream<T> on Stream<T> {
   /// ```
   Widget withPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
-      buildNullable((t) => Pylon<T?>(value: t, builder: builder));
+      buildNullable((t) => t != null
+          ? Pylon<T>(value: t, builder: builder)
+          : Pylon<T?>(value: t, builder: builder));
 }
