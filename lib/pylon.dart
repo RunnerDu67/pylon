@@ -143,7 +143,8 @@ extension XFuture<T> on Future<T> {
         if (kDebugMode) {
           print("Error loading Future<$T>: $e $es");
         }
-      }).build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
+      }).build((t) => Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder),
+          loading: loading);
 
   /// Builds a [FutureBuilder] with parent pylon available for use, allowing nullable values.
   ///
@@ -155,8 +156,8 @@ extension XFuture<T> on Future<T> {
   Widget withPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
       buildNullable((t) => t != null
-          ? Pylon<T>(value: t, builder: builder)
-          : Pylon<T?>(value: t, builder: builder));
+          ? Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder)
+          : Pylon<T?>(value: t, key: PylonKey<T?>(t), builder: builder));
 }
 
 /// Extension on [Stream] to provide easy creation of [StreamBuilder] with [Pylon] support.
@@ -171,7 +172,8 @@ extension XStream<T> on Stream<T> {
   Widget withPylon(
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>
-      build((t) => Pylon<T>(value: t, builder: builder), loading: loading);
+      build((t) => Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder),
+          loading: loading);
 
   /// Builds a [StreamBuilder] with parent pylon available for use, allowing nullable values.
   ///
@@ -183,6 +185,10 @@ extension XStream<T> on Stream<T> {
   Widget withPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
       buildNullable((t) => t != null
-          ? Pylon<T>(value: t, builder: builder)
-          : Pylon<T?>(value: t, builder: builder));
+          ? Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder)
+          : Pylon<T?>(value: t, key: PylonKey<T?>(t), builder: builder));
+}
+
+class PylonKey<T> extends ValueKey<T> {
+  const PylonKey(super.value);
 }
