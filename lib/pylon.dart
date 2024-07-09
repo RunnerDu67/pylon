@@ -136,7 +136,7 @@ extension XFuture<T> on Future<T> {
   /// Future<String> future = Future.value("Hello World");
   /// Widget widget = future.withPylon((context) => Text(context.pylon<String>()));
   /// ```
-  Widget withPylon(
+  Widget withSpamPylon(
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>
       catchError((e, es) {
@@ -153,7 +153,7 @@ extension XFuture<T> on Future<T> {
   /// Future<String?> future = Future.value("Hello World");
   /// Widget widget = future.withPylonNullable((context) => Text(context.pylon<String?>()));
   /// ```
-  Widget withPylonNullable(BuildContext context,
+  Widget withSpamPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
       buildNullable((t) => t != null
           ? Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder)
@@ -169,7 +169,7 @@ extension XStream<T> on Stream<T> {
   /// Stream<String> stream = Stream.value("Hello World");
   /// Widget widget = stream.withPylon((context) => Text(context.pylon<String>()));
   /// ```
-  Widget withPylon(
+  Widget withSpamPylon(
           BuildContext context, Widget Function(BuildContext context) builder,
           {Widget? loading}) =>
       build((t) => Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder),
@@ -182,7 +182,7 @@ extension XStream<T> on Stream<T> {
   /// Stream<String?> stream = Stream.value("Hello World");
   /// Widget widget = stream.withPylonNullable((context) => Text(context.pylon<String?>()));
   /// ```
-  Widget withPylonNullable(BuildContext context,
+  Widget withSpamPylonNullable(BuildContext context,
           Widget Function(BuildContext context) builder) =>
       buildNullable((t) => t != null
           ? Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder)
