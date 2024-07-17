@@ -19,6 +19,12 @@ extension XBuildContext on BuildContext {
       or)!;
 }
 
+/// If you have child widgets which are const, their build methods may not be called by flutter
+/// If you rely on pylon rebuilding the tree on updates, you can use this callback on your build method to ensure it's rebuilt
+/// on widget changes.
+Widget reactive(BuildContext context, Widget Function(BuildContext) builder) =>
+    Builder(builder: builder);
+
 /// A [PylonCluster] is a widget that hosts nested [Pylon] widgets.
 /// It allows you to create multiple [Pylon]s at once and provides a builder
 /// to build the child widget with the context containing all the [Pylon]s.
