@@ -1,3 +1,6 @@
+## 1.0.4
+* FIX: When mirroring, skips already existing types to prevent a previous pylon overwritten from accidentally becoming the new value
+
 ## 1.0.3
 * Added .withPylonNullable for futures and streams
 

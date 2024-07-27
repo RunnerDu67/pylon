@@ -102,8 +102,13 @@ class Pylon<T> extends StatelessWidget {
     List<Pylon> providers = [];
     context.visitAncestorElements((element) {
       if (element.widget is Pylon) {
-        providers.add(element.widget as Pylon);
+        Pylon p = element.widget as Pylon;
+
+        if (!providers.any((i) => i.runtimeType == p.runtimeType)) {
+          providers.add(p);
+        }
       }
+
       return true;
     });
 
