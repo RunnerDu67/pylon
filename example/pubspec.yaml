@@ -1,0 +1,17 @@
+name: example
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: '>=3.4.4 <4.0.0'
+dependencies:
+  pylon: 
+    path: ../
+  flutter:
+    sdk: flutter
+  rxdart: ^0.28.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true

@@ -1,111 +1,119 @@
 library pylon;
 
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:toxic_flutter/extensions/future.dart';
-import 'package:toxic_flutter/extensions/stream.dart';
+import 'package:rxdart/rxdart.dart';
 
-/// Extension on [BuildContext] to provide easy access to [Pylon] values.
+/// Just a simple builder method, nothing to see here, move along
+typedef PylonBuilder = Widget Function(BuildContext context);
+
+/// Represents common route types for [Pylon.push]
+enum PylonRouteType {
+  /// Represents a [MaterialPageRoute]
+  material,
+
+  /// Represents a [CupertinoPageRoute]
+  cupertino,
+}
+
+extension XIterable<T> on Iterable<T> {
+  List<Pylon<T>> withPylons(PylonBuilder builder,
+          {bool updateChildren = true}) =>
+      map((e) =>
+              Pylon(updateChildren: updateChildren, value: e, builder: builder))
+          .toList();
+}
+
 extension XBuildContext on BuildContext {
-  /// Finds the nearest ancestor [Pylon] of type [T] and returns its value.
-  /// If no such [Pylon] is found, returns the provided default value [or].
-  ///
-  /// Example:
-  /// ```dart
-  /// String value = context.pylon<String>(or: "default");
-  /// ```
-  T pylon<T>({T? or}) => (findAncestorWidgetOfExactType<Pylon<T>>()?.value ??
-      findAncestorWidgetOfExactType<Pylon<T?>>()?.value ??
-      or)!;
+  /// Finds the nearest ancestor [Pylon] of type [T] and returns its value
+  T pylon<T>() => (Pylon.of<T>(this)?.value ??
+      findAncestorWidgetOfExactType<Pylon<T>>()?.value)!;
+
+  /// Sets the value of the nearest ancestor [Pylon] of type [T] to [value]
+  void setPylon<T>(T value) => Pylon.of<T>(this)!.value = value;
+
+  /// Modifies the value of the nearest ancestor [Pylon] of type [T] with [modifier]
+  void modPylon<T>(T Function(T value) modifier) =>
+      setPylon(modifier(pylon<T>()));
+
+  /// Returns the value stream of the nearest ancestor [Pylon] of type [T]
+  Stream<T> streamPylon<T>() => Pylon.of<T>(this)!.stream;
+
+  /// Builds a [StreamBuilder] with the value stream of the nearest ancestor [Pylon] of type [T]
+  Widget streamBuildPylon<T>(Widget Function(T value) builder) =>
+      StreamBuilder<T>(
+          stream: streamPylon<T>(),
+          builder: (context, snap) =>
+              snap.hasData ? builder(snap.data as T) : const SizedBox.shrink());
 }
 
-/// If you have child widgets which are const, their build methods may not be called by flutter
-/// If you rely on pylon rebuilding the tree on updates, you can use this callback on your build method to ensure it's rebuilt
-/// on widget changes.
-Widget reactive(BuildContext context, Widget Function(BuildContext) builder) =>
-    Builder(builder: builder);
-
-/// A [PylonCluster] is a widget that hosts nested [Pylon] widgets.
-/// It allows you to create multiple [Pylon]s at once and provides a builder
-/// to build the child widget with the context containing all the [Pylon]s.
-class PylonCluster extends StatelessWidget {
-  final List<Pylon> pylons;
-  final Widget Function(BuildContext context) builder;
-
-  const PylonCluster({super.key, required this.pylons, required this.builder});
-
-  @override
-  Widget build(BuildContext context) {
-    Widget p = Builder(builder: builder);
-
-    for (Pylon i in pylons.reversed) {
-      p = i.modChild(p);
-    }
-
-    return p;
-  }
-}
-
-/// A [Pylon] is a widget that provides a value to its children. When placing a [Pylon] in your widget tree,
-/// we use the builder instead of just a child to get the [BuildContext] closer to where it actually is.
-/// The reason why the provider package requires builder widgets everywhere is the same reason.
-/// By forcing the builder method by default we can ensure objects can always be found even when accessed from a direct child widget.
-class Pylon<T> extends StatelessWidget {
-  /// The value that this pylon provides
+/// A widget that provides a value to its descendants
+/// Supports bridging pylons into new widgets across widget trees (navigation stacks)
+/// Supports streaming the value to its descendants
+/// Supports updating its children automatically when the value changes
+class Pylon<T> extends StatefulWidget {
   final T value;
+  final PylonBuilder builder;
+  final bool updateChildren;
+  final BehaviorSubject<T>? upstream;
 
-  /// The builder that will be used to build the child widget
-  final Widget Function(BuildContext context)? builder;
-
-  /// The child widget that will be used if we arent using a builder
-  final Widget? child;
-
-  /// The preferred method, use the builder
   const Pylon(
-      {super.key, required this.value, required this.builder, this.child});
-
-  /// Only use this if you have multiple [Pylon] widgets nested and intend to use it after a new context is provided
-  const Pylon.withChild({super.key, required this.value, this.child})
-      : builder = null;
-
-  /// This is used with [PylonCluster] to provide a value to multiple [Pylon] widgets without providing a builder or child as it will be built for you later
-  const Pylon.data(this.value, {super.key})
-      : builder = null,
-        child = null;
-
-  /// Copies this [Pylon] with a new child
-  Pylon<T> modChild(Widget child) => Pylon.withChild(
-        key: key,
-        value: value,
-        child: child,
-      );
+      {super.key,
+      this.upstream,
+      required this.value,
+      required this.builder,
+      this.updateChildren = true});
 
   @override
-  Widget build(BuildContext context) =>
-      child ?? Builder(builder: (context) => builder!(context));
+  State<Pylon<T>> createState() => PylonState();
+
+  static PylonState<T>? of<T>(BuildContext context) =>
+      context.findAncestorStateOfType<PylonState<T>>();
 
   /// Pushes all visible [Pylon] widgets into your builder function's parent widget. This is used for navigation
   static Future<T?> push<T extends Object?>(
-          BuildContext context, Widget child) =>
-      Navigator.push(context, Pylon.route(context, (context) => child));
+    BuildContext context,
+    Widget child, {
+    PylonRouteType type = PylonRouteType.material,
+    Route<T>? route,
+  }) =>
+      Navigator.push(
+          context,
+          route ??
+              switch (type) {
+                PylonRouteType.material =>
+                  Pylon.materialPageRoute(context, (context) => child),
+                PylonRouteType.cupertino =>
+                  Pylon.cupertinoPageRoute(context, (context) => child),
+              });
 
   /// Creates a [MaterialPageRoute] with the [Pylon] widgets mirrored into the builder function to transfer the values
-  static MaterialPageRoute<T> route<T extends Object?>(
+  static MaterialPageRoute<T> materialPageRoute<T extends Object?>(
           BuildContext context, Widget Function(BuildContext) builder) =>
       MaterialPageRoute<T>(builder: mirror(context, builder));
 
-  /// Mirrors the [Pylon] widgets into the builder function to transfer the values
-  /// Example:
-  /// Navigator.push(context, MaterialPageRoute(builder: Pylon.mirror((context) => MyWidget())));
+  /// Creates a [CupertinoPageRoute] with the [Pylon] widgets mirrored into the builder function to transfer the values
+  static CupertinoPageRoute<T> cupertinoPageRoute<T extends Object?>(
+          BuildContext context, Widget Function(BuildContext) builder) =>
+      CupertinoPageRoute<T>(builder: mirror(context, builder));
+
+  /// Mirrors the [Pylon] widgets observable to [context] as an ancestor tree of [builder]
+  /// This also bridges the pylons back to this pylon such that modifications on the mirror
+  /// are bridged back to the original pylon
   static Widget Function(BuildContext) mirror(
       BuildContext context, Widget Function(BuildContext) builder) {
-    List<Pylon> providers = [];
+    List<(Pylon, PylonState)> providers = [];
+
     context.visitAncestorElements((element) {
       if (element.widget is Pylon) {
         Pylon p = element.widget as Pylon;
 
         if (!providers.any((i) => i.runtimeType == p.runtimeType)) {
-          providers.add(p);
+          PylonState state = (element as StatefulElement).state as PylonState;
+          providers.add((p, state));
         }
       }
 
@@ -113,93 +121,128 @@ class Pylon<T> extends StatelessWidget {
     });
 
     return (context) {
-      Widget p = Builder(builder: builder);
+      Widget finalChild = Builder(builder: builder);
 
-      for (Pylon i in providers.reversed) {
-        p = i.modChild(p);
+      for ((Pylon, PylonState) i in providers.reversed) {
+        Widget at = finalChild;
+        finalChild = i.$2.bridge((context) => at);
       }
 
-      return p;
+      return finalChild;
     };
   }
 }
 
-/// Extension on [Iterable] to provide easy creation of [Pylon] widgets for each item.
-extension XIterable<T> on Iterable<T> {
-  /// Builds [Pylon] widgets for each item in the list with your builder.
-  ///
-  /// Example:
-  /// ```dart
-  /// List<String> items = ["a", "b", "c"];
-  /// List<Widget> widgets = items.withPylons((context) => Text(context.pylon<String>()));
-  /// ```
-  Iterable<Widget> withPylons(BuildContext context,
-          Widget Function(BuildContext context) builder) =>
-      map((t) => Pylon<T>(value: t, builder: (context) => builder(context)));
-}
+/// The state of a [Pylon] widget
+class PylonState<T> extends State<Pylon<T>> {
+  late BehaviorSubject<T> _subject;
+  late StreamSubscription<T>? _upstreamListener;
+  bool _ignoreNextEvent = false;
+  late VoidCallback _focusListener;
+  late FocusScopeNode? _focusScope;
+  late T? _lastBuilt;
 
-/// Extension on [Future] to provide easy creation of [FutureBuilder] with [Pylon] support.
-extension XFuture<T> on Future<T> {
-  /// Builds a [FutureBuilder] with parent pylon available for use.
-  ///
-  /// Example:
-  /// ```dart
-  /// Future<String> future = Future.value("Hello World");
-  /// Widget widget = future.withPylon((context) => Text(context.pylon<String>()));
-  /// ```
-  Widget withSpamPylon(
-          BuildContext context, Widget Function(BuildContext context) builder,
-          {Widget? loading}) =>
-      catchError((e, es) {
+  /// The value of the [Pylon]
+  T get value => _subject.value;
+
+  /// Sets the value of the [Pylon], updating the upstream [Pylon] if it exists
+  /// If [Pylon.updateChildren] is true, it will also update the children by
+  /// calling setState
+  set value(T value) {
+    if (widget.upstream != null && !_ignoreNextEvent) {
+      widget.upstream!.add(value);
+    }
+
+    _subject.add(value);
+
+    if (widget.updateChildren && mounted) {
+      try {
+        setState(() {});
+      } catch (e) {
         if (kDebugMode) {
-          print("Error loading Future<$T>: $e $es");
+          print(
+              "Failed to call setState on mounted $runtimeType with updateChildren = true $e");
         }
-      }).build((t) => Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder),
-          loading: loading);
+      }
+    }
+  }
 
-  /// Builds a [FutureBuilder] with parent pylon available for use, allowing nullable values.
-  ///
-  /// Example:
-  /// ```dart
-  /// Future<String?> future = Future.value("Hello World");
-  /// Widget widget = future.withPylonNullable((context) => Text(context.pylon<String?>()));
-  /// ```
-  Widget withSpamPylonNullable(BuildContext context,
-          Widget Function(BuildContext context) builder) =>
-      buildNullable((t) => t != null
-          ? Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder)
-          : Pylon<T?>(value: t, key: PylonKey<T?>(t), builder: builder));
-}
+  Stream<T> get stream => _subject.stream;
 
-/// Extension on [Stream] to provide easy creation of [StreamBuilder] with [Pylon] support.
-extension XStream<T> on Stream<T> {
-  /// Builds a [StreamBuilder] with parent pylon available for use.
-  ///
-  /// Example:
-  /// ```dart
-  /// Stream<String> stream = Stream.value("Hello World");
-  /// Widget widget = stream.withPylon((context) => Text(context.pylon<String>()));
-  /// ```
-  Widget withSpamPylon(
-          BuildContext context, Widget Function(BuildContext context) builder,
-          {Widget? loading}) =>
-      build((t) => Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder),
-          loading: loading);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _focusScope = FocusScope.of(context);
+  }
 
-  /// Builds a [StreamBuilder] with parent pylon available for use, allowing nullable values.
-  ///
-  /// Example:
-  /// ```dart
-  /// Stream<String?> stream = Stream.value("Hello World");
-  /// Widget widget = stream.withPylonNullable((context) => Text(context.pylon<String?>()));
-  /// ```
-  Widget withSpamPylonNullable(BuildContext context,
-          Widget Function(BuildContext context) builder) =>
-      buildNullable((t) => t != null
-          ? Pylon<T>(value: t, key: PylonKey<T>(t), builder: builder)
-          : Pylon<T?>(value: t, key: PylonKey<T?>(t), builder: builder));
-}
+  void _setupFocusListener() => _focusScope?.addListener(_focusListener);
 
-class PylonKey<T> extends ValueKey<T> {
-  const PylonKey(super.value);
+  /// Creates a new pylon that bridges the pylons upstream to the downstream
+  /// This is used for bridging pylons across widget trees (pylon mirrors)
+  Pylon<T> bridge(PylonBuilder builder) => Pylon<T>(
+        upstream: _subject,
+        value: value,
+        builder: builder,
+        updateChildren: widget.updateChildren,
+      );
+
+  @override
+  void initState() {
+    _subject = BehaviorSubject.seeded(widget.value);
+    _upstreamListener = widget.upstream?.listen((value) {
+      if (!_ignoreNextEvent) {
+        _subject.add(value);
+      }
+
+      _ignoreNextEvent = false;
+    });
+    _focusListener = () {
+      if (widget.updateChildren && mounted && _lastBuilt != value) {
+        try {
+          if (FocusScope.of(context).hasFocus) {
+            setState(() {});
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print("Failed to call setState on mounted $runtimeType $e");
+          }
+        }
+      }
+    };
+
+    if (widget.updateChildren) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _setupFocusListener());
+    }
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _upstreamListener?.cancel();
+    _subject.close();
+
+    if (widget.updateChildren) {
+      _focusScope?.removeListener(_focusListener);
+    }
+
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(Pylon<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _subject.add(widget.value);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _lastBuilt = value;
+    return Builder(
+      key: ValueKey<T>(value),
+      builder: widget.builder,
+    );
+  }
 }
