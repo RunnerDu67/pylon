@@ -108,8 +108,8 @@ class DogScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         // Increment the age on dog which will update this screen & the parent list tile view automatically
-        onPressed: () =>
-        context.dog = context.dog.copyWith(age: context.dog.age + 1),
+        onPressed: () => context.dog = context.dog
+            .copyWith(age: context.dog.age + 1),
         child: Icon(Icons.add),
       ));
 }

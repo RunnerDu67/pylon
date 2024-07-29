@@ -19,7 +19,58 @@ enum PylonRouteType {
   cupertino,
 }
 
+extension XStream<T> on Stream<T> {
+  /// Converts a [Stream] to a [Pylon] with an initial value of [initial]
+  Pylon<T> asPylon(
+    T initial,
+    PylonBuilder builder, {
+    bool updateChildren = true,
+  }) {
+    BehaviorSubject<T> subject = BehaviorSubject.seeded(initial);
+    StreamSubscription<T> s = listen(subject.add, onDone: subject.close);
+    subject.onCancel = s.cancel;
+    return Pylon(
+        value: initial,
+        builder: builder,
+        updateChildren: updateChildren,
+        upstream: subject);
+  }
+}
+
+extension XStreamIterable<T> on Stream<Iterable<T>> {
+  /// Converts a [Stream] of [Iterable] to a [Stream] of [Pylon]
+  Stream<Iterable<Pylon<T>>> withPylons(
+    PylonBuilder builder, {
+    bool updateChildren = true,
+  }) async* {
+    await for (Iterable<T> i in this) {
+      yield i.withPylons(builder, updateChildren: updateChildren);
+    }
+  }
+}
+
+extension XFuture<T> on Future<T> {
+  // Converts a [Future] to a [Pylon] with an initial value of [initial]
+  Pylon<T> asPylon(
+    T initial,
+    PylonBuilder builder, {
+    bool updateChildren = true,
+  }) {
+    BehaviorSubject<T> subject = BehaviorSubject.seeded(initial);
+    then((v) {
+      subject.add(initial);
+      subject.close();
+    });
+    return Pylon(
+        value: initial,
+        builder: builder,
+        updateChildren: updateChildren,
+        upstream: subject);
+  }
+}
+
 extension XIterable<T> on Iterable<T> {
+  // Converts an [Iterable] to a
   List<Pylon<T>> withPylons(PylonBuilder builder,
           {bool updateChildren = true}) =>
       map((e) =>

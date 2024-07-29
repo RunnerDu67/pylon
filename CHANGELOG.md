@@ -1,3 +1,7 @@
+## 2.0.0
+* BREAKING: Rewritten to be more reliable and allow modifications
+* Please read README & Examples!
+
 ## 1.0.4
 * FIX: When mirroring, skips already existing types to prevent a previous pylon overwritten from accidentally becoming the new value
 
