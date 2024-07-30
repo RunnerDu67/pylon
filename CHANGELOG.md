@@ -1,3 +1,8 @@
+## 2.0.1
+* Pylons can now receive an input stream instead of relying on the upstream to pump in data
+* When pylons are given a stream, they can connect it to other pylons across screens and still update
+* Added an option to disable focus updates while keeping childUpdates enabled
+
 ## 2.0.0
 * BREAKING: Rewritten to be more reliable and allow modifications
 * Please read README & Examples!

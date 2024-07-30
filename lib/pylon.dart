@@ -26,14 +26,11 @@ extension XStream<T> on Stream<T> {
     PylonBuilder builder, {
     bool updateChildren = true,
   }) {
-    BehaviorSubject<T> subject = BehaviorSubject.seeded(initial);
-    StreamSubscription<T> s = listen(subject.add, onDone: subject.close);
-    subject.onCancel = s.cancel;
     return Pylon(
         value: initial,
         builder: builder,
         updateChildren: updateChildren,
-        upstream: subject);
+        valueStream: this);
   }
 }
 
@@ -65,7 +62,7 @@ extension XFuture<T> on Future<T> {
         value: initial,
         builder: builder,
         updateChildren: updateChildren,
-        upstream: subject);
+        valueStream: subject.stream);
   }
 }
 
@@ -106,21 +103,45 @@ extension XBuildContext on BuildContext {
 /// Supports streaming the value to its descendants
 /// Supports updating its children automatically when the value changes
 class Pylon<T> extends StatefulWidget {
+  /// The initial value of the [Pylon]
   final T value;
-  final PylonBuilder builder;
-  final bool updateChildren;
-  final BehaviorSubject<T>? upstream;
 
-  const Pylon(
-      {super.key,
-      this.upstream,
-      required this.value,
-      required this.builder,
-      this.updateChildren = true});
+  /// The widget builder function that receives the [BuildContext] of the [Pylon]
+  final PylonBuilder builder;
+
+  /// Whether to update the children when the value changes
+  final bool updateChildren;
+
+  /// The value stream of the [Pylon] which will update the pylon from the stream
+  final Stream<T>? valueStream;
+
+  /// The upstream [Pylon] that will be updated when the value changes and backprop changes
+  /// to the parent pylon. Don't define this it's used with Pylon.mirror()
+  final BehaviorSubject<T>? $upstream;
+
+  /// If [updateChildren] is true, this will update the children when the nearest ancestor
+  /// focus scope has regained focus, but only if the state value is different from the last-built
+  /// value. This ensures pylons update their children when popping the navigation stack and the resumed
+  /// screen has the latest pylons values actually built.
+  final bool updateChildrenOnFocus;
+
+  const Pylon({
+    super.key,
+    this.valueStream,
+    this.$upstream,
+    required this.value,
+    required this.builder,
+    this.updateChildren = true,
+    this.updateChildrenOnFocus = true,
+  })  : assert(valueStream == null || $upstream == null,
+            "Can't have both valueStream and upstreams defined. If you are trying to have a pylon update with a stream use valueStream. Upstreams are so pylons can transfer streams across navigation stacks."),
+        assert(!updateChildren && updateChildrenOnFocus,
+            "updateChildrenOnFocus can only be true if updateChildren is true. If you want to update children on focus, set updateChildren to true also.");
 
   @override
   State<Pylon<T>> createState() => PylonState();
 
+  /// Gets the pylon state of type [T] from the [BuildContext]
   static PylonState<T>? of<T>(BuildContext context) =>
       context.findAncestorStateOfType<PylonState<T>>();
 
@@ -188,8 +209,9 @@ class Pylon<T> extends StatefulWidget {
 class PylonState<T> extends State<Pylon<T>> {
   late BehaviorSubject<T> _subject;
   late StreamSubscription<T>? _upstreamListener;
+  late StreamSubscription<T>? _valueStreamListener;
   bool _ignoreNextEvent = false;
-  late VoidCallback _focusListener;
+  late VoidCallback? _focusListener;
   late FocusScopeNode? _focusScope;
   late T? _lastBuilt;
 
@@ -200,12 +222,15 @@ class PylonState<T> extends State<Pylon<T>> {
   /// If [Pylon.updateChildren] is true, it will also update the children by
   /// calling setState
   set value(T value) {
-    if (widget.upstream != null && !_ignoreNextEvent) {
-      widget.upstream!.add(value);
+    if (widget.$upstream != null && !_ignoreNextEvent) {
+      widget.$upstream!.add(value);
     }
 
     _subject.add(value);
+    _tryUpdateChildren();
+  }
 
+  void _tryUpdateChildren() {
     if (widget.updateChildren && mounted) {
       try {
         setState(() {});
@@ -223,15 +248,35 @@ class PylonState<T> extends State<Pylon<T>> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _focusScope = FocusScope.of(context);
+
+    if (widget.updateChildrenOnFocus) {
+      _focusScope = FocusScope.of(context);
+    }
   }
 
-  void _setupFocusListener() => _focusScope?.addListener(_focusListener);
+  void _setupFocusListener() {
+    if (widget.updateChildrenOnFocus) {
+      _focusListener = () {
+        if (widget.updateChildren && mounted && _lastBuilt != value) {
+          try {
+            if (FocusScope.of(context).hasFocus) {
+              setState(() {});
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              print("Failed to call setState on mounted $runtimeType $e");
+            }
+          }
+        }
+      };
+      _focusScope?.addListener(_focusListener!);
+    }
+  }
 
   /// Creates a new pylon that bridges the pylons upstream to the downstream
   /// This is used for bridging pylons across widget trees (pylon mirrors)
   Pylon<T> bridge(PylonBuilder builder) => Pylon<T>(
-        upstream: _subject,
+        $upstream: _subject,
         value: value,
         builder: builder,
         updateChildren: widget.updateChildren,
@@ -240,28 +285,17 @@ class PylonState<T> extends State<Pylon<T>> {
   @override
   void initState() {
     _subject = BehaviorSubject.seeded(widget.value);
-    _upstreamListener = widget.upstream?.listen((value) {
+    _valueStreamListener = widget.valueStream?.listen((v) => value = v);
+    _upstreamListener = widget.$upstream?.listen((value) {
       if (!_ignoreNextEvent) {
         _subject.add(value);
+        _tryUpdateChildren();
       }
 
       _ignoreNextEvent = false;
     });
-    _focusListener = () {
-      if (widget.updateChildren && mounted && _lastBuilt != value) {
-        try {
-          if (FocusScope.of(context).hasFocus) {
-            setState(() {});
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            print("Failed to call setState on mounted $runtimeType $e");
-          }
-        }
-      }
-    };
 
-    if (widget.updateChildren) {
+    if (widget.updateChildrenOnFocus) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _setupFocusListener());
     }
@@ -271,10 +305,11 @@ class PylonState<T> extends State<Pylon<T>> {
   @override
   void dispose() {
     _upstreamListener?.cancel();
+    _valueStreamListener?.cancel();
     _subject.close();
 
-    if (widget.updateChildren) {
-      _focusScope?.removeListener(_focusListener);
+    if (widget.updateChildrenOnFocus) {
+      _focusScope?.removeListener(_focusListener!);
     }
 
     super.dispose();
