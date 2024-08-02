@@ -189,7 +189,7 @@ class Pylon<T> extends StatefulWidget {
       if (element.widget is Pylon) {
         Pylon p = element.widget as Pylon;
 
-        if (!providers.any((i) => i.runtimeType == p.runtimeType)) {
+        if (!providers.any((i) => i.$1.runtimeType == p.runtimeType)) {
           PylonState state = (element as StatefulElement).state as PylonState;
           providers.add((p, state));
         }
