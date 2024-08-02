@@ -25,11 +25,13 @@ extension XStream<T> on Stream<T> {
     T initial,
     PylonBuilder builder, {
     bool updateChildren = true,
+    bool updateChildrenOnFocus = true,
   }) {
     return Pylon(
         value: initial,
         builder: builder,
         updateChildren: updateChildren,
+        updateChildrenOnFocus: updateChildrenOnFocus,
         valueStream: this);
   }
 }
@@ -39,9 +41,12 @@ extension XStreamIterable<T> on Stream<Iterable<T>> {
   Stream<Iterable<Pylon<T>>> withPylons(
     PylonBuilder builder, {
     bool updateChildren = true,
+    bool updateChildrenOnFocus = true,
   }) async* {
     await for (Iterable<T> i in this) {
-      yield i.withPylons(builder, updateChildren: updateChildren);
+      yield i.withPylons(builder,
+          updateChildren: updateChildren,
+          updateChildrenOnFocus: updateChildrenOnFocus);
     }
   }
 }
@@ -52,6 +57,7 @@ extension XFuture<T> on Future<T> {
     T initial,
     PylonBuilder builder, {
     bool updateChildren = true,
+    bool updateChildrenOnFocus = true,
   }) {
     BehaviorSubject<T> subject = BehaviorSubject.seeded(initial);
     then((v) {
@@ -62,6 +68,7 @@ extension XFuture<T> on Future<T> {
         value: initial,
         builder: builder,
         updateChildren: updateChildren,
+        updateChildrenOnFocus: updateChildrenOnFocus,
         valueStream: subject.stream);
   }
 }
@@ -69,16 +76,17 @@ extension XFuture<T> on Future<T> {
 extension XIterable<T> on Iterable<T> {
   // Converts an [Iterable] to a
   List<Pylon<T>> withPylons(PylonBuilder builder,
-          {bool updateChildren = true}) =>
-      map((e) =>
-              Pylon(updateChildren: updateChildren, value: e, builder: builder))
-          .toList();
+          {bool updateChildren = true, bool updateChildrenOnFocus = true}) =>
+      map((e) => Pylon(
+          updateChildren: updateChildren,
+          value: e,
+          builder: builder,
+          updateChildrenOnFocus: updateChildrenOnFocus)).toList();
 }
 
 extension XBuildContext on BuildContext {
   /// Finds the nearest ancestor [Pylon] of type [T] and returns its value
-  T pylon<T>() => (Pylon.of<T>(this)?.value ??
-      findAncestorWidgetOfExactType<Pylon<T>>()?.value)!;
+  T pylon<T>() => (Pylon.of<T>(this)?.value ?? Pylon.of<T?>(this)?.value)!;
 
   /// Sets the value of the nearest ancestor [Pylon] of type [T] to [value]
   void setPylon<T>(T value) => Pylon.of<T>(this)!.value = value;
@@ -88,7 +96,8 @@ extension XBuildContext on BuildContext {
       setPylon(modifier(pylon<T>()));
 
   /// Returns the value stream of the nearest ancestor [Pylon] of type [T]
-  Stream<T> streamPylon<T>() => Pylon.of<T>(this)!.stream;
+  Stream<T> streamPylon<T>() =>
+      (Pylon.of<T>(this)?.stream ?? Pylon.of<T?>(this)?.stream.whereType<T>())!;
 
   /// Builds a [StreamBuilder] with the value stream of the nearest ancestor [Pylon] of type [T]
   Widget streamBuildPylon<T>(Widget Function(T value) builder) =>
@@ -133,10 +142,7 @@ class Pylon<T> extends StatefulWidget {
     required this.builder,
     this.updateChildren = true,
     this.updateChildrenOnFocus = true,
-  })  : assert(valueStream == null || $upstream == null,
-            "Can't have both valueStream and upstreams defined. If you are trying to have a pylon update with a stream use valueStream. Upstreams are so pylons can transfer streams across navigation stacks."),
-        assert(!updateChildren && updateChildrenOnFocus,
-            "updateChildrenOnFocus can only be true if updateChildren is true. If you want to update children on focus, set updateChildren to true also.");
+  });
 
   @override
   State<Pylon<T>> createState() => PylonState();
@@ -207,11 +213,12 @@ class Pylon<T> extends StatefulWidget {
 
 /// The state of a [Pylon] widget
 class PylonState<T> extends State<Pylon<T>> {
+  late T _initialValue;
   late BehaviorSubject<T> _subject;
   late StreamSubscription<T>? _upstreamListener;
   late StreamSubscription<T>? _valueStreamListener;
   bool _ignoreNextEvent = false;
-  late VoidCallback? _focusListener;
+  VoidCallback? _focusListener;
   late FocusScopeNode? _focusScope;
   late T? _lastBuilt;
 
@@ -276,14 +283,15 @@ class PylonState<T> extends State<Pylon<T>> {
   /// Creates a new pylon that bridges the pylons upstream to the downstream
   /// This is used for bridging pylons across widget trees (pylon mirrors)
   Pylon<T> bridge(PylonBuilder builder) => Pylon<T>(
-        $upstream: _subject,
-        value: value,
-        builder: builder,
-        updateChildren: widget.updateChildren,
-      );
+      $upstream: _subject,
+      value: value,
+      builder: builder,
+      updateChildren: widget.updateChildren,
+      updateChildrenOnFocus: widget.updateChildrenOnFocus);
 
   @override
   void initState() {
+    _initialValue = widget.value;
     _subject = BehaviorSubject.seeded(widget.value);
     _valueStreamListener = widget.valueStream?.listen((v) => value = v);
     _upstreamListener = widget.$upstream?.listen((value) {
@@ -308,7 +316,7 @@ class PylonState<T> extends State<Pylon<T>> {
     _valueStreamListener?.cancel();
     _subject.close();
 
-    if (widget.updateChildrenOnFocus) {
+    if (_focusListener != null) {
       _focusScope?.removeListener(_focusListener!);
     }
 
@@ -316,19 +324,13 @@ class PylonState<T> extends State<Pylon<T>> {
   }
 
   @override
-  void didUpdateWidget(Pylon<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _subject.add(widget.value);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     _lastBuilt = value;
-    return Builder(
-      key: ValueKey<T>(value),
-      builder: widget.builder,
-    );
+
+    return KeyedSubtree(
+        key: ValueKey<T>(_initialValue),
+        child: Builder(
+          builder: widget.builder,
+        ));
   }
 }
