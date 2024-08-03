@@ -28,6 +28,7 @@ extension XStream<T> on Stream<T> {
     bool updateChildrenOnFocus = true,
   }) {
     return Pylon(
+        key: ValueKey(initial),
         value: initial,
         builder: builder,
         updateChildren: updateChildren,
@@ -65,6 +66,7 @@ extension XFuture<T> on Future<T> {
       subject.close();
     });
     return Pylon(
+        key: ValueKey(initial),
         value: initial,
         builder: builder,
         updateChildren: updateChildren,
@@ -78,6 +80,7 @@ extension XIterable<T> on Iterable<T> {
   List<Pylon<T>> withPylons(PylonBuilder builder,
           {bool updateChildren = true, bool updateChildrenOnFocus = true}) =>
       map((e) => Pylon(
+          key: ValueKey(e),
           updateChildren: updateChildren,
           value: e,
           builder: builder,
