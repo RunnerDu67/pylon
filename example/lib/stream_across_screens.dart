@@ -52,5 +52,5 @@ class InnerCounter extends StatelessWidget {
       appBar: AppBar(title: Text("Inner Counter")),
       // This accesses the inner pylon on context since
       // the previous screens pylon is not in this widget tree
-      body: Text("Count: ${context.pylon<int>()}"));
+      body: context.streamBuildPylon((i) => Text("Count: $i")));
 }

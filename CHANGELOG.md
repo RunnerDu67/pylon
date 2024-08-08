@@ -1,3 +1,7 @@
+## 2.0.4
+* FIX Using a stream builder which builds a pylon with an updated value without using pylon streams will now update the pylon correctly
+* Added debugging by pylon types with dPylonDebug set of types tag
+
 ## 2.0.3
 * FIX State Loss when nesting multiple pylons inside of each other with active value streams
 * FIX Pylon push overwriting previous values in stacked same-type pylons breaking the tree logic

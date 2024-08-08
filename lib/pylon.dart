@@ -2,10 +2,13 @@ library pylon;
 
 import 'dart:async';
 
+import 'package:fast_log/fast_log.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
+
+Set<Type> dPylonDebugTypes = {};
 
 /// Just a simple builder method, nothing to see here, move along
 typedef PylonBuilder = Widget Function(BuildContext context);
@@ -224,14 +227,23 @@ class PylonState<T> extends State<Pylon<T>> {
   VoidCallback? _focusListener;
   late FocusScopeNode? _focusScope;
   late T? _lastBuilt;
+  bool get shouldDebug => dPylonDebugTypes.contains(T);
+  void debugLog(String message) {
+    if (kDebugMode && shouldDebug) {
+      verbose("Pylon<$T>[${_initialValue.hashCode}]: $message");
+    }
+  }
 
   /// The value of the [Pylon]
-  T get value => _subject.value;
+  T get value => widget.valueStream == null && widget.$upstream == null
+      ? widget.value
+      : _subject.value;
 
   /// Sets the value of the [Pylon], updating the upstream [Pylon] if it exists
   /// If [Pylon.updateChildren] is true, it will also update the children by
   /// calling setState
   set value(T value) {
+    debugLog("Setter => $value");
     if (widget.$upstream != null && !_ignoreNextEvent) {
       widget.$upstream!.add(value);
     }
@@ -243,7 +255,9 @@ class PylonState<T> extends State<Pylon<T>> {
   void _tryUpdateChildren() {
     if (widget.updateChildren && mounted) {
       try {
-        setState(() {});
+        setState(() {
+          debugLog("Updated Children");
+        });
       } catch (e) {
         if (kDebugMode) {
           print(
@@ -261,6 +275,7 @@ class PylonState<T> extends State<Pylon<T>> {
 
     if (widget.updateChildrenOnFocus) {
       _focusScope = FocusScope.of(context);
+      debugLog("Updated focus scope (didChangeDependencies)");
     }
   }
 
@@ -270,7 +285,9 @@ class PylonState<T> extends State<Pylon<T>> {
         if (widget.updateChildren && mounted && _lastBuilt != value) {
           try {
             if (FocusScope.of(context).hasFocus) {
-              setState(() {});
+              setState(() {
+                debugLog("Updated Children due to on focus");
+              });
             }
           } catch (e) {
             if (kDebugMode) {
@@ -280,6 +297,7 @@ class PylonState<T> extends State<Pylon<T>> {
         }
       };
       _focusScope?.addListener(_focusListener!);
+      debugLog("Added focus listener");
     }
   }
 
@@ -295,10 +313,12 @@ class PylonState<T> extends State<Pylon<T>> {
   @override
   void initState() {
     _initialValue = widget.value;
+    debugLog("InitState");
     _subject = BehaviorSubject.seeded(widget.value);
     _valueStreamListener = widget.valueStream?.listen((v) => value = v);
     _upstreamListener = widget.$upstream?.listen((value) {
       if (!_ignoreNextEvent) {
+        debugLog("Upstream rcv => $value");
         _subject.add(value);
         _tryUpdateChildren();
       }
@@ -323,12 +343,18 @@ class PylonState<T> extends State<Pylon<T>> {
       _focusScope?.removeListener(_focusListener!);
     }
 
+    debugLog("Disposed");
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     _lastBuilt = value;
+    debugLog("Built => $value");
+
+    if (widget.valueStream == null) {
+      _subject.add(value);
+    }
 
     return KeyedSubtree(
         key: ValueKey<T>(_initialValue),
