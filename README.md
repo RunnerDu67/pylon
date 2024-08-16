@@ -7,11 +7,7 @@ Unlike other state management packages, Pylon's job is to manage the state. That
 
 * Pylons work very similarly to providers, except they actually work how you would expect them to.
 * Pylons work across navigation routes by bridging them using Pylon.push
-* You can stream the value of Pylons using Pylon.stream
-* Pylons automatically update their children when they change
 * You can access a pylon even if it's the immediate parent of the widget accessing it.
-* Pylons bridged backpropagate their values to their ancestor pylons
-* Pylons update if the last built value is different from the current value when focus changes. This means when popping the navigator, any pylons updated will actually rebuild on the parent screen.
 
 # Usage
 
