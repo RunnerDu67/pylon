@@ -195,6 +195,25 @@ class PylonCluster extends StatelessWidget {
   }
 }
 
+extension XPylonStream<T> on Stream<T> {
+  Widget asPylon(PylonBuilder builder,
+          {Key? key,
+          T? initialData,
+          Widget loading = const SizedBox.shrink()}) =>
+      PylonStream<T>(
+        key: key,
+        stream: this,
+        initialData: initialData,
+        builder: builder,
+        loading: loading,
+      );
+}
+
+extension XPylonIterable<T> on Iterable<T> {
+  List<Widget> withPylons(PylonBuilder builder) =>
+      map((e) => Pylon<T>(value: e, builder: builder)).toList();
+}
+
 extension XContext on BuildContext {
   /// Returns the value of the nearest ancestor [Pylon] widget of type T or null
   T? pylonOr<T>() =>
