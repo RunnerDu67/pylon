@@ -1,3 +1,18 @@
+## 3.0.4
+* Bugfixes
+
+## 3.0.3
+* Allow pylons to be accessed via runtime type (parameter) by looking at all visible pylons (same as mirror) and grabbing the first visible pylon with the matching value type
+
+## 3.0.2
+* Fixes
+
+## 3.0.1
+* Fixes
+
+## 3.0.0
+* BREAKING: Pylon has been rewritten to be more reliable and allow modifications
+
 ## 2.0.4
 * FIX Using a stream builder which builds a pylon with an updated value without using pylon streams will now update the pylon correctly
 * Added debugging by pylon types with dPylonDebug set of types tag

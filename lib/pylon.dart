@@ -3,6 +3,7 @@ library pylon;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:toxic/extensions/iterable.dart';
 
 typedef PylonBuilder = Widget Function(BuildContext context);
 
@@ -96,6 +97,8 @@ class Pylon<T> extends StatelessWidget {
   static Pylon<T>? widgetOfOr<T>(BuildContext context) =>
       context.findAncestorWidgetOfExactType<Pylon<T>>();
 
+  Type get valueType => T;
+
   /// Returns the value of the nearest ancestor [Pylon] widget of type T or throws an error
   static Pylon<T> widgetOf<T>(BuildContext context) => widgetOfOr(context)!;
 
@@ -126,10 +129,7 @@ class Pylon<T> extends StatelessWidget {
           BuildContext context, Widget Function(BuildContext) builder) =>
       CupertinoPageRoute<T>(builder: mirror(context, builder));
 
-  /// Creates a builder function which produces a PylonCluster of all visible ancestor pylons
-  /// from [context] and uses the provided [builder] function. Use this when building custom routes
-  static Widget Function(BuildContext) mirror(
-      BuildContext context, Widget Function(BuildContext) builder) {
+  static List<Pylon> visiblePylons(BuildContext context) {
     List<Pylon> providers = [];
 
     context.visitAncestorElements((element) {
@@ -143,6 +143,15 @@ class Pylon<T> extends StatelessWidget {
 
       return true;
     });
+
+    return providers;
+  }
+
+  /// Creates a builder function which produces a PylonCluster of all visible ancestor pylons
+  /// from [context] and uses the provided [builder] function. Use this when building custom routes
+  static Widget Function(BuildContext) mirror(
+      BuildContext context, Widget Function(BuildContext) builder) {
+    List<Pylon> providers = visiblePylons(context);
 
     Widget result = PylonCluster(
       pylons: providers.reversed.toList(),
@@ -216,11 +225,14 @@ extension XPylonIterable<T> on Iterable<T> {
 
 extension XContext on BuildContext {
   /// Returns the value of the nearest ancestor [Pylon] widget of type T or null
-  T? pylonOr<T>() =>
-      Pylon.widgetOfOr<T>(this)?.value ?? Pylon.widgetOfOr<T?>(this)?.value;
+  T? pylonOr<T>({Type? runtime}) => runtime != null
+      ? Pylon.visiblePylons(this)
+          .select((i) => i.value.runtimeType == runtime)
+          ?.value
+      : Pylon.widgetOfOr<T>(this)?.value ?? Pylon.widgetOfOr<T?>(this)?.value;
 
   /// Returns the value of the nearest ancestor [Pylon] widget of type T or throws an error
-  T pylon<T>() => pylonOr<T>()!;
+  T pylon<T>({Type? runtime}) => pylonOr<T>(runtime: runtime)!;
 
   /// Sets the value of the nearest ancestor [MutablePylon] widget of type T
   /// This will throw an error if the pylon is not mutable or if there is
