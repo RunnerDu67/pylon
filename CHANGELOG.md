@@ -1,3 +1,6 @@
+## 3.0.5
+* Allow localized pylons that dont get picked up in mirror.
+
 ## 3.0.4
 * Bugfixes
 

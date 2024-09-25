@@ -77,19 +77,27 @@ class Pylon<T> extends StatelessWidget {
   final PylonBuilder? builder;
   final Widget? child;
 
-  const Pylon({super.key, required this.value, required this.builder})
+  /// If local is set to true it wont persist across navigation routes
+  final bool local;
+
+  const Pylon(
+      {super.key,
+      required this.value,
+      required this.builder,
+      this.local = false})
       : child = null;
 
   /// Use this constructor when you want to pass a value to a single child widget and dont need a builder function.
   /// You can use a child instead of a builder however if you need to use the value immediately in the child widget
   /// then it wont be available until either a builder function is used or the child widget build method uses it
   /// Use the regular constructor for lazy inlining
-  const Pylon.withChild({super.key, required this.value, required this.child})
+  const Pylon.withChild(
+      {super.key, required this.value, required this.child, this.local = false})
       : builder = null;
 
   /// This is primarily used for [PylonCluster]. Using this constructor produces a widget which will
   /// throw an error if built as it doesnt have a child or builder function
-  const Pylon.data({super.key, required this.value})
+  const Pylon.data({super.key, required this.value, this.local = false})
       : builder = null,
         child = null;
 
@@ -129,12 +137,17 @@ class Pylon<T> extends StatelessWidget {
           BuildContext context, Widget Function(BuildContext) builder) =>
       CupertinoPageRoute<T>(builder: mirror(context, builder));
 
-  static List<Pylon> visiblePylons(BuildContext context) {
+  static List<Pylon> visiblePylons(BuildContext context,
+      {bool ignoreLocals = false}) {
     List<Pylon> providers = [];
 
     context.visitAncestorElements((element) {
       if (element.widget is Pylon) {
         Pylon p = element.widget as Pylon;
+
+        if (ignoreLocals && p.local) {
+          return true;
+        }
 
         if (!providers.any((i) => i.runtimeType == p.runtimeType)) {
           providers.add(p);
@@ -151,7 +164,7 @@ class Pylon<T> extends StatelessWidget {
   /// from [context] and uses the provided [builder] function. Use this when building custom routes
   static Widget Function(BuildContext) mirror(
       BuildContext context, Widget Function(BuildContext) builder) {
-    List<Pylon> providers = visiblePylons(context);
+    List<Pylon> providers = visiblePylons(context, ignoreLocals: true);
 
     Widget result = PylonCluster(
       pylons: providers.reversed.toList(),
@@ -262,11 +275,13 @@ class MutablePylon<T> extends StatefulWidget {
   final T value;
   final PylonBuilder builder;
   final bool rebuildChildren;
+  final bool local;
 
   const MutablePylon(
       {super.key,
       required this.value,
       required this.builder,
+      this.local = false,
       this.rebuildChildren = false});
 
   static MutablePylonState<T>? ofOr<T>(BuildContext context) =>
@@ -319,5 +334,6 @@ class MutablePylonState<T> extends State<MutablePylon> {
   Widget build(BuildContext context) => Pylon<T>(
         value: value,
         builder: widget.builder,
+        local: widget.local,
       );
 }
