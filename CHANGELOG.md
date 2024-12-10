@@ -1,3 +1,6 @@
+## 3.1.1
+* Move codecs to [pylon_codec](https://pub.dev/packages/pylon_codec) package and endorse it.
+
 ## 3.1.0
 * Added error widget property on PylonFuture
 * Added codecs & PylonCodec registration into Pylon
