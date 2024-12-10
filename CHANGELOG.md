@@ -1,3 +1,6 @@
+## 3.1.2
+* Support codecs without specific types by casting late on value instead of on codec.
+
 ## 3.1.1
 * Move codecs to [pylon_codec](https://pub.dev/packages/pylon_codec) package and endorse it.
 

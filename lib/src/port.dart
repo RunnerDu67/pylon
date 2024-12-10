@@ -4,7 +4,7 @@ import 'package:pylon/pylon.dart';
 import 'package:toxic/extensions/future.dart';
 import 'package:universal_html/html.dart' as html;
 
-class PylonPort<T extends PylonCodec<T>> extends StatefulWidget {
+class PylonPort<T extends PylonCodec> extends StatefulWidget {
   final String tag;
   final PylonBuilder builder;
   final Widget loading;
@@ -31,16 +31,16 @@ class PylonPort<T extends PylonCodec<T>> extends StatefulWidget {
   State<PylonPort> createState() => _PylonPortState<T>();
 }
 
-class _PylonPortState<T extends PylonCodec<T>> extends State<PylonPort<T>> {
+class _PylonPortState<T extends PylonCodec> extends State<PylonPort<T>> {
   late Future<T?> value;
-  late PylonCodec<T> codec;
+  late PylonCodec codec;
   T? initialData;
 
   @override
   void initState() {
     assert(pylonCodecs[T] != null,
         'No codec registered for type $T. Use registerPylonCodec<$T>(const $T()); somewhere in your main before app launch!');
-    codec = pylonCodecs[T] as PylonCodec<T>;
+    codec = pylonCodecs[T] as PylonCodec;
     T? value = context.pylonOr<T>();
 
     if (value != null) {
@@ -76,7 +76,7 @@ class _PylonPortState<T extends PylonCodec<T>> extends State<PylonPort<T>> {
       Uri uri = Uri.parse(html.window.location.href);
       String? value = uri.queryParameters[widget.tag];
       if (value != null) {
-        return codec.pylonDecode(value);
+        return codec.pylonDecode(value) as T;
       }
     }
     return null;
