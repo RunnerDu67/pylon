@@ -1,3 +1,6 @@
+## 3.1.3
+* Fix pylon error port
+
 ## 3.1.2
 * Support codecs without specific types by casting late on value instead of on codec.
 

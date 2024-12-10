@@ -51,6 +51,12 @@ class _PylonPortState<T extends PylonCodec> extends State<PylonPort<T>> {
       this.value = pullUrl().bang.thenRun((u) => pushUrl(u));
     }
 
+    this.value = this.value.catchError((e, ex) {
+      if (kDebugMode) {
+        print("PylonPort Error $e, $ex");
+      }
+    });
+
     if (widget.errorsAreNull) {
       this.value = this.value.catchError((e) => null);
     }
@@ -76,7 +82,7 @@ class _PylonPortState<T extends PylonCodec> extends State<PylonPort<T>> {
       Uri uri = Uri.parse(html.window.location.href);
       String? value = uri.queryParameters[widget.tag];
       if (value != null) {
-        return codec.pylonDecode(value) as T;
+        return codec.pylonDecode(value).then((v) => v as T);
       }
     }
     return null;
