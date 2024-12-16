@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:pylon/pylon.dart';
 
 // Temporary storage of the "data"
@@ -45,10 +43,6 @@ class Note implements PylonCodec<Note> {
 }
 
 void main() {
-  if (kIsWeb) {
-    usePathUrlStrategy();
-  }
-
   // Add some "notes"
   for (int i = 0; i < 100; i++) {
     _addNote("Hello Note ${notes.length}",
@@ -99,7 +93,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: Text("Wasm? $kIsWasm"),
+          title: Conduit<int>(builder: (context, v) => Text("$v")),
         ),
         body: ListView.builder(
           // For each note build a pylon wrapped around our note tile
@@ -120,10 +114,13 @@ class NoteTile extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
         title: Text(context.note.name),
         subtitle: Text(context.note.description),
-        onTap: () => Pylon.push(context, NoteScreen(),
-            settings: RouteSettings(
-              name: "/note",
-            )),
+        onTap: () {
+          Pylon.push(context, NoteScreen(),
+              settings: RouteSettings(
+                name: "/note",
+              ));
+          Conduit.modOr<int>((i) => (i ?? 0) + 1);
+        },
       );
 }
 

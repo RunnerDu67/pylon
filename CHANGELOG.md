@@ -1,3 +1,6 @@
+## 3.1.5
+* Add Conduits
+
 ## 3.1.4
 * Attempt to fix wasm builds with js_interop conditional import
 
