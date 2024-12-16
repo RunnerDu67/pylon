@@ -98,6 +98,9 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: Text("Wasm? $kIsWasm"),
+        ),
         body: ListView.builder(
           // For each note build a pylon wrapped around our note tile
           itemBuilder: (context, i) => Pylon<Note>(

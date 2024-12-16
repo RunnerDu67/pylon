@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:pylon/pylon.dart';
+import 'package:pylon/src/util/address_bar_io.dart'
+    if (dart.library.js_interop) 'package:pylon/src/util/address_bar_js.dart'
+    if (dart.library.html) 'package:pylon/src/util/address_bar_html.dart';
 import 'package:toxic/extensions/future.dart';
-import 'package:universal_html/html.dart' as html;
 
 class PylonPort<T extends PylonCodec> extends StatefulWidget {
   final String tag;
@@ -66,8 +68,8 @@ class _PylonPortState<T extends PylonCodec> extends State<PylonPort<T>> {
 
   void pushUrl(T value) {
     if (kIsWeb) {
-      Uri uri = Uri.parse(html.window.location.href);
-      html.window.history.pushState(
+      Uri uri = Uri.parse($hrefPylon);
+      $pushHrefPylon(
           null,
           "",
           uri.replace(queryParameters: {
@@ -79,7 +81,7 @@ class _PylonPortState<T extends PylonCodec> extends State<PylonPort<T>> {
 
   Future<T?> pullUrl() async {
     if (kIsWeb) {
-      Uri uri = Uri.parse(html.window.location.href);
+      Uri uri = Uri.parse($hrefPylon);
       String? value = uri.queryParameters[widget.tag];
       if (value != null) {
         return codec.pylonDecode(value).then((v) => v as T);
