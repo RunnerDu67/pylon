@@ -1,3 +1,6 @@
+## 3.1.7
+* ADD `PylonRemove` to remove a pylon from the context
+
 ## 3.1.6
 * Fix /#/ port navigation
 

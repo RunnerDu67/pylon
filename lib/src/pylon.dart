@@ -2,6 +2,20 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pylon/pylon.dart';
 
+/// Nullifies a pylon value from the widget tree
+class PylonRemove<T> extends StatelessWidget {
+  final PylonBuilder builder;
+  final bool local;
+  const PylonRemove({super.key, required this.builder, this.local = false});
+
+  @override
+  Widget build(BuildContext context) => Pylon<T?>(
+        value: null,
+        builder: builder,
+        local: local,
+      );
+}
+
 /// A widget that provides a value to its descendants. This is useful for passing values
 /// to widgets that are not directly related to each other
 class Pylon<T> extends StatelessWidget {
