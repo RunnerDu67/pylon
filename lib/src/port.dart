@@ -66,22 +66,28 @@ class _PylonPortState<T extends PylonCodec> extends State<PylonPort<T>> {
     super.initState();
   }
 
+  String _frag = "/HHAASSHH_FFRRAAGG/";
+  String get $hrefNonHash => $hrefPylon.replaceAll("/#/", _frag);
+
   void pushUrl(T value) {
     if (kIsWeb) {
-      Uri uri = Uri.parse($hrefPylon);
+      Uri uri = Uri.parse($hrefNonHash);
       $pushHrefPylon(
           null,
           "",
-          uri.replace(queryParameters: {
-            ...uri.queryParameters,
-            widget.tag: codec.pylonEncode(value)
-          }).toString());
+          uri
+              .replace(queryParameters: {
+                ...uri.queryParameters,
+                widget.tag: codec.pylonEncode(value)
+              })
+              .toString()
+              .replaceAll(_frag, "/#/"));
     }
   }
 
   Future<T?> pullUrl() async {
     if (kIsWeb) {
-      Uri uri = Uri.parse($hrefPylon);
+      Uri uri = Uri.parse($hrefNonHash);
       String? value = uri.queryParameters[widget.tag];
       if (value != null) {
         return codec.pylonDecode(value).then((v) => v as T);

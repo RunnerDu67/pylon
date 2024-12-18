@@ -1,3 +1,6 @@
+## 3.1.6
+* Fix /#/ port navigation
+
 ## 3.1.5
 * Add Conduits
 

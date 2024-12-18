@@ -30,11 +30,11 @@ extension _JSLocationExtension on _JSLocation {
 }
 
 extension _JSHistoryExtension on _JSHistory {
-  external void pushState(JSObject? data, String title, String? url);
+  external void replaceState(JSObject? data, String title, String? url);
 }
 
 String get $hrefPylon => _window.location.href;
 
 void $pushHrefPylon(JSObject? data, String title, String? url) {
-  _window.history.pushState(data, title, url);
+  _window.history.replaceState(data, title, url);
 }

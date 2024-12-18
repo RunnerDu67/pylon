@@ -139,6 +139,16 @@ class NoteScreen extends StatelessWidget {
             title: Text(context.note.name),
           ),
           body: Text(context.note.description),
+          floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                Pylon.push(
+                    context,
+                    Pylon<Note>(
+                      value: notes[(context.note.id + 1) % notes.length],
+                      builder: (context) => NoteScreen(),
+                    ));
+              },
+              child: Icon(Icons.next_plan)),
         ),
       );
 }
