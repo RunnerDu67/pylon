@@ -1,3 +1,7 @@
+## 3.1.9
+* ADD `Pylon.pushReplacement`
+* ADD `Pylon.pushAndRemoveUntil`
+
 ## 3.1.7
 * ADD `PylonRemove` to remove a pylon from the context
 

@@ -56,6 +56,46 @@ class Pylon<T> extends StatelessWidget {
   /// Returns the value of the nearest ancestor [Pylon] widget of type T or throws an error
   static Pylon<T> widgetOf<T>(BuildContext context) => widgetOfOr(context)!;
 
+  static Future<T?> pushReplacement<T extends Object?, TO extends Object?>(
+    BuildContext context,
+    Widget child, {
+    RouteSettings? settings,
+    PylonRouteType type = PylonRouteType.material,
+    Route<T>? route,
+  }) =>
+      Navigator.pushReplacement<T?, TO?>(
+          context,
+          route ??
+              switch (type) {
+                PylonRouteType.material => Pylon.materialPageRoute(
+                    context, (context) => child,
+                    settings: settings),
+                PylonRouteType.cupertino => Pylon.cupertinoPageRoute(
+                    context, (context) => child,
+                    settings: settings),
+              });
+
+  static Future<T?> pushAndRemoveUntil<T extends Object?>(
+    BuildContext context,
+    Widget child, {
+    RouteSettings? settings,
+    PylonRouteType type = PylonRouteType.material,
+    Route<T>? route,
+    required RoutePredicate predicate,
+  }) =>
+      Navigator.pushAndRemoveUntil<T?>(
+          context,
+          route ??
+              switch (type) {
+                PylonRouteType.material => Pylon.materialPageRoute(
+                    context, (context) => child,
+                    settings: settings),
+                PylonRouteType.cupertino => Pylon.cupertinoPageRoute(
+                    context, (context) => child,
+                    settings: settings),
+              },
+          predicate);
+
   /// Pushes all visible [Pylon] widgets into your builder function's parent widget. This is used for navigation
   static Future<T?> push<T extends Object?>(
     BuildContext context,
