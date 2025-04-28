@@ -107,7 +107,7 @@ Pylon.pushAndRemoveUntil(context, LoginScreen(),
 
 #### Nullifying Pylons
 
-You can use `PylonRemove<T>` to nullify a pylon value:
+You can use `PylonRemove<T>` to nullify a pylon value: Note: You can only use this if the parent pylon is a Pylon<ThemeData?>, if it isnt a nullable type it cant be removed!
 
 ```dart
 // Remove the current theme pylon for all descendants
