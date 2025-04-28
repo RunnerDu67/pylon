@@ -372,7 +372,7 @@ class Counter extends StatelessWidget {
   Counter({super.key});
 
   @override
-  Widget build(BuildContext context) => Pylon<int>(
+  Widget build(BuildContext context) => MutablePylon<int>(
     value: 0,
     builder: (context) => Scaffold(
       appBar: AppBar(title: Text('Pylon Counter')),
